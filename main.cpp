@@ -1,10 +1,13 @@
 // Stanisław Latuszek 203248
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <locale>
+#include <ostream>
 
 struct metar {
   char airport[30];
+  int day, hour, minutes;
 };
 
 void clear() {
@@ -15,13 +18,24 @@ void clear() {
 #endif
 };
 
-void charArrayCopy(char (&dst)[], const char (&src)[], int len) {
-  for (int i = 0; i < len; i++) {
+void charArrCpy(char *dst, const char *src) {
+  int i = 0;
+  do {
     dst[i] = src[i];
-  };
+    i++;
+  } while (src[i - 1] != '\0');
 };
 
-int icaoToName(const char (&code)[4], metar &output) {
+bool charArrCompare(const char *a, const char *b) {
+  for (int i = 0; a[i] != '\0' || b[i] != '\0'; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  };
+  return true;
+};
+
+bool parseICAO(const char (&input)[20], metar &output) {
   const char CODES[][5] = {"EPWA", "EPKK", "EPGD", "EPKT", "EPWR",
                            "EPMO", "EPPO", "EPRZ", "EPSC", "EPLB",
                            "EPBY", "EPLL", "EPSY", "EPRA", "EPZG"};
@@ -40,19 +54,62 @@ int icaoToName(const char (&code)[4], metar &output) {
                                "Olsztyn-Mazury",
                                "Warszawa-Radom",
                                "Zielona Góra-Babimost"};
-  const int len = sizeof(CODES) / sizeof(CODES[0]);
-  for (int i = 0; i <= len; i++) {
-    if (code[0] == CODES[i][0] && code[1] == CODES[i][1] &&
-        code[2] == CODES[i][2] && code[3] == CODES[i][3]) {
-      charArrayCopy(output.airport, AIRPORTS[i],
-                    sizeof(AIRPORTS[i]) / sizeof(AIRPORTS[i][0]));
-      return 1;
+
+  for (int i = 0; i < 20; i++) {
+    if (input[i] == '\0') {
+      if (i == 4) {
+        break;
+      } else {
+        return false;
+      }
+    } else if (i >= 4) {
+      return false;
+    } else if (!std::isupper(input[i])) {
+      return false;
+    };
+  };
+
+  for (int i = 0; i < 15; i++) {
+    if (charArrCompare(CODES[i], input)) {
+      charArrCpy(output.airport, AIRPORTS[i]);
+      return true;
+    };
+  };
+
+  charArrCpy(output.airport, "Nieznane lotnisko");
+  return true;
+};
+
+bool parseTime(const char (&input)[20], metar &output) {
+  for (int i = 0; i < 20; i++) {
+    if (input[i] == '\0') {
+      if (i == 7)
+        break;
+      else
+        return false;
+    } else if (i < 6 && !std::isdigit(input[i])) {
+      return false;
+    } else if (i == 6 && input[i] != 'Z') {
+      return false;
+    } else if (i > 7) {
+      return false;
     }
   }
 
-  charArrayCopy(output.airport, "Nieznane lotnisko", 20);
-  return 0;
-};
+  unsigned int day = (input[0] - '0') * 10 + (input[1] - '0');
+  unsigned int hour = (input[2] - '0') * 10 + (input[3] - '0');
+  unsigned int minutes = (input[4] - '0') * 10 + (input[5] - '0');
+
+  if (day > 31 || hour > 24 || minutes > 59)
+    return false;
+  else {
+    output.day = day;
+    output.hour = hour;
+    output.minutes = minutes;
+    return true;
+  };
+  return false;
+}
 
 char menu() {
   std::cout << " __  __ _____ _____  _    ____  " << std::endl
@@ -78,14 +135,27 @@ char menu() {
   return tolower(input);
 };
 
-void handleEntry(char (&entry)[120]) {
+void handleEntry(const char (&entry)[120]) {
   metar result;
-  char icao[4];
-  // Grab first 4 characters
-  for (int i = 0; i < 4; i++)
-    icao[i] = entry[i];
-  icaoToName(icao, result);
-  std::cout << result.airport << std::endl;
+  int offset = 0;
+  char part[20];
+  for (int i = 0; i < 120; i++) {
+    if (entry[i] == '\0') {
+      /* std::cout << part << std::endl; */
+      break;
+    } else if (entry[i] == ' ') {
+      part[i - offset] = '\0';
+      if (parseICAO(part, result))
+        std::cout << result.airport << std::endl;
+      else if (parseTime(part, result))
+        std::cout << result.day << " Dzień miesiąca " << result.hour << ":"
+                  << result.minutes << " UTC" << std::endl;
+      offset = i + 1;
+    } else {
+      part[i - offset] = entry[i];
+    };
+  };
+  std::cout << std::endl;
 };
 
 void handleFile(std::string path) {
@@ -94,7 +164,10 @@ void handleFile(std::string path) {
   while (in_file.peek() != EOF) {
     char entry[120];
     in_file.getline(entry, 120);
+    std::cout << entry << std::endl;
     handleEntry(entry);
+    std::cout << std::endl;
+    entry[0] = '\0';
   };
 };
 
