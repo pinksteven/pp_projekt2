@@ -1,13 +1,22 @@
 // Stanisław Latuszek 203248
-#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <locale>
-#include <ostream>
+
+struct air {
+  bool measured;
+  bool direct_stable;
+  int degree, deg_from, deg_upto;
+  bool speed_stable;
+  int speed, speed_upto;
+  char unit[4];
+  bool vrb = false;
+};
 
 struct metar {
   char airport[30];
   int day, hour, minutes;
+  air wind;
 };
 
 void clear() {
@@ -111,6 +120,78 @@ bool parseTime(const char (&input)[20], metar &output) {
   return false;
 }
 
+bool parseWindPrim(const char (&input)[20], metar &output) {
+  char test[4];
+  for (int i = 0; i < 20; i++) {
+    if (input[i] == '\0') {
+      test[3] = '\0';
+      test[2] = input[i - 1];
+      test[1] = input[i - 2];
+      test[0] = input[i - 3];
+      break;
+    };
+  };
+  if (charArrCompare(test, "MPS") || charArrCompare(test, "MPS"))
+    charArrCpy(output.wind.unit, test);
+  else if (test[1] == 'K' && test[2] == 'T')
+    charArrCpy(output.wind.unit, "KT");
+  else
+    return false;
+
+  if (input[0] == '/') {
+    output.wind.measured = false;
+    return true;
+  } else if (charArrCompare(input, "VRB01")) {
+    output.wind.measured = true;
+    output.wind.vrb = true;
+    return true;
+  } else {
+    output.wind.measured = true;
+    int deg = (input[0] - '0') * 100 + (input[1] - '0') * 10 + (input[2] - '0');
+    if (deg < 0 || deg > 360)
+      return false;
+    int speed = -1, upto = -1;
+    int temp = 0;
+    for (int i = 3; i < 20; i++) {
+      if (input[i] == 'G')
+        speed = temp;
+      else if (input[i] == 'K' || input[i] == 'M')
+        break;
+      else
+        temp = temp * 10 + (input[i] - '0');
+    }
+    if (speed == -1)
+      speed = temp;
+    else
+      upto = temp;
+    output.wind.direct_stable = true;
+    output.wind.degree = deg;
+    output.wind.speed_stable = !(upto == -1);
+    output.wind.speed = speed;
+    output.wind.speed_upto = upto;
+  }
+  return true;
+};
+
+bool parseWindSec(const char (&input)[20], metar &output) {
+  int len;
+  for (int i = 0; i < 20; i++) {
+    if (input[i] == '\0') {
+      len = i;
+      break;
+    };
+  };
+  if (len != 7 || input[3] != 'V')
+    return false;
+
+  output.wind.direct_stable = false;
+  output.wind.deg_from =
+      (input[0] - '0') * 100 + (input[1] - '0') * 10 + (input[2] - '0');
+  output.wind.deg_upto =
+      (input[4] - '0') * 100 + (input[5] - '0') * 10 + (input[6] - '0');
+  return true;
+};
+
 char menu() {
   std::cout << " __  __ _____ _____  _    ____  " << std::endl
             << "|  \\/  | ____|_   _|/ \\  |  _ \\ " << std::endl
@@ -150,6 +231,11 @@ void handleEntry(const char (&entry)[120]) {
       else if (parseTime(part, result))
         std::cout << result.day << " Dzień miesiąca " << result.hour << ":"
                   << result.minutes << " UTC" << std::endl;
+      else if (parseWindPrim(part, result))
+        std::cout << "wind " << result.wind.degree << " " << result.wind.speed
+                  << std::endl;
+      else if (parseWindSec(part, result))
+        std::cout << "wind secondary" << std::endl;
       offset = i + 1;
     } else {
       part[i - offset] = entry[i];
