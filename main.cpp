@@ -1,6 +1,7 @@
 // Stanisław Latuszek 203248
 #include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <locale>
 
@@ -39,7 +40,8 @@ struct conditions {
                        {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
   int layers = 0; // holds the number of layers that are there
   // height in ft, cover goes {FEW, SCT, BKN, OVC, VV}, {CB = 1, TCU = 2, ///=
-  // 3} I'm gonna assume all the different specials just gove me "no clouds"
+  // 3} I'm gonna assume all the different specials just give me "no clouds" but
+  // in diff form
   bool cloudless = false;
 };
 
@@ -49,6 +51,8 @@ struct metar {
   int day, hour, minutes;
   air wind;
   conditions weather;
+  int temperature, dew;
+  int pressure;
 };
 
 // system use different commands :/
@@ -185,35 +189,32 @@ bool parseWindPrim(const char (&input)[20], metar &output) {
   if (input[0] == '/') {
     output.wind.measured = false;
     return true;
-  } else if (charArrCompare(input, "VRB01")) {
-    output.wind.measured = true;
+  } else if (input[0] == 'V' && input[1] == 'R' && input[2] == 'B') {
     output.wind.vrb = true;
-    return true;
-  } else {
-    output.wind.measured = true;
-    int deg = (input[0] - '0') * 100 + (input[1] - '0') * 10 + (input[2] - '0');
-    if (deg < 0 || deg > 360)
-      return false;
-    int speed = -1, upto = -1;
-    int temp = 0;
-    for (int i = 3; i < 20; i++) {
-      if (input[i] == 'G')
-        speed = temp;
-      else if (input[i] == 'K' || input[i] == 'M')
-        break;
-      else
-        temp = temp * 10 + (input[i] - '0');
-    }
-    if (speed == -1)
-      speed = temp;
-    else
-      upto = temp;
-    output.wind.direct_stable = true;
-    output.wind.degree = deg;
-    output.wind.speed_stable = !(upto == -1);
-    output.wind.speed = speed;
-    output.wind.speed_upto = upto;
   }
+  output.wind.measured = true;
+  int deg = (input[0] - '0') * 100 + (input[1] - '0') * 10 + (input[2] - '0');
+  if ((deg < 0 || deg > 360) && !output.wind.vrb)
+    return false;
+  int speed = -1, upto = -1;
+  int temp = 0;
+  for (int i = 3; i < 20; i++) {
+    if (input[i] == 'G')
+      speed = temp;
+    else if (input[i] == 'K' || input[i] == 'M')
+      break;
+    else
+      temp = temp * 10 + (input[i] - '0');
+  }
+  if (speed == -1)
+    speed = temp;
+  else
+    upto = temp;
+  output.wind.direct_stable = true;
+  output.wind.degree = deg;
+  output.wind.speed_stable = (upto == -1);
+  output.wind.speed = speed;
+  output.wind.speed_upto = upto;
   return true;
 };
 
@@ -331,9 +332,9 @@ bool parseClouds(const char (&input)[20], metar &output) {
                    "NSC", "SKC", "NCD", "CLR"};
   bool found = false;
   char test[4] = {input[0], input[1], input[2], '\0'};
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 9; i++) {
     if (charArrCompare(test, pre[i])) {
-      output.weather.cloudless = (i >= 5 && i <= 8) ? true : false;
+      output.weather.cloudless = (i >= 5);
       if (i < 5) {
         output.weather.clouds[output.weather.layers][0] = i;
       };
@@ -374,6 +375,160 @@ bool parseClouds(const char (&input)[20], metar &output) {
   return true;
 }
 
+bool parseTemperature(const char (&input)[20], metar &output) {
+  bool negative = false;
+  int found = 0;
+  int temp = 0, dew = 0;
+  for (int i = 0; i < 20; i++) {
+    if (input[i] == 'M') {
+      negative = true;
+    } else if (input[i] == '/') {
+      temp = (input[i - 2] - '0') * 10 + (input[i - 1] - '0');
+      if (negative)
+        temp *= -1;
+      negative = false;
+      found++;
+    } else if (input[i] == '\0') {
+      dew = (input[i - 2] - '0') * 10 + (input[i - 1] - '0');
+      if (negative)
+        dew *= -1;
+      found++;
+      break;
+    } else if (!isdigit(input[i])) {
+      return false;
+    }
+  }
+  if (found == 2) {
+    output.temperature = temp;
+    output.dew = dew;
+    return true;
+  }
+  return false;
+}
+
+bool parsePressure(const char (&input)[20], metar &output) {
+  int len = length(input);
+  if (len != 6) {
+    return false;
+  }
+  bool shitUnit = false;
+  int pressure = 0;
+  for (int i = 0; i < len - 1; i++) {
+    if (i == 0 && input[i] == 'A') {
+      shitUnit = true;
+    } else if (i == 0 && input[i] == 'Q') {
+      continue;
+    } else if (isdigit(input[i])) {
+      pressure = pressure * 10 + (input[i] - '0');
+    } else {
+      return false;
+    }
+  }
+  if (shitUnit)
+    pressure *= 0.337685;
+  output.pressure = pressure;
+  return true;
+}
+
+void tryParsers(const char (&input)[20], metar &output) {
+  if (parseICAO(input, output))
+    std::cout << output.airport << std::endl;
+  else if (parseTime(input, output))
+    std::cout << output.day << " Dzień miesiąca " << output.hour << ":"
+              << output.minutes << " UTC" << std::endl;
+  else if (parseWindPrim(input, output))
+    std::cout << "wind " << output.wind.degree << " " << output.wind.speed
+              << std::endl;
+  else if (parseWindSec(input, output))
+    std::cout << "wind secondary" << std::endl;
+  else if (charArrCompare(input, "CAVOK")) {
+    output.weather.cavok = true;
+    std::cout << "CAVOK" << std::endl;
+  } else if (parseVisibility(input, output))
+    std::cout << "visibility " << output.weather.visibility[0] << "m"
+              << std::endl;
+  else if (parsePhenomena(input, output))
+    std::cout << "weather" << std::endl;
+  else if (parseClouds(input, output))
+    std::cout << "Clouds " << output.weather.clouds[0][1] << "m "
+              << output.weather.clouds[0][0] << std::endl;
+  else if (parseTemperature(input, output))
+    std::cout << "Temperature " << output.temperature << " Dew " << output.dew
+              << std::endl;
+  else if (parsePressure(input, output))
+    std::cout << "Pressure " << output.pressure << "hPa" << std::endl;
+}
+
+void printEntry(const metar &input) {
+  std::cout << std::setfill('0') << std::setw(2) << input.day
+            << " Dzień miesiąca " << std::setw(2) << input.hour << ":"
+            << std::setw(2) << input.minutes << "UTC" << std::endl;
+  std::cout << "Lotnisko " << input.airport << std::endl;
+  std::cout << "Wiatr: " << std::endl;
+  if (input.wind.measured) {
+    if (input.wind.vrb) {
+      std::cout << "    kierunek zmienny";
+    } else {
+      std::cout << "    z kieruneku " << input.wind.degree << "°";
+      if (!input.wind.direct_stable)
+        std::cout << " zmienny od " << input.wind.deg_from << "° do "
+                  << input.wind.deg_upto << "°";
+    }
+    std::cout << std::endl << "    prędkość " << input.wind.speed << " węzłów";
+    if (!input.wind.speed_stable)
+      std::cout << " w porywach do " << input.wind.speed_upto << " węzłów";
+
+  } else {
+    std::cout << "    nie zmierzony" << std::endl;
+  }
+  std::cout << std::endl
+            << std::setfill('0') << "Temperatura:" << std::endl
+            << "    powietrza " << std::setw(2) << input.temperature << "°C"
+            << std::endl
+            << "    punktu rosy " << std::setw(2) << input.dew << "°C"
+            << std::endl;
+  std::cout << "Ciśnienie atmosferyczne: " << input.pressure << "hPa"
+            << std::endl;
+  if (input.weather.cavok) {
+    std::cout << "Widoczność i chumry w porządku" << std::endl;
+  } else {
+    std::cout << "Widoczność: ";
+    if (!input.weather.directional) {
+      std::cout << input.weather.visibility[0] << "m";
+    } else {
+      const char compass[][20] = {
+          "północ",   "północny-wschód",   "wschód", "południowy-wschód",
+          "południe", "południowy-zachod", "zachod", "północny-zachod"};
+      for (int i = 0; i < 8; i++) {
+
+        if (input.weather.visibility[i] != -1)
+          std::cout << std::endl
+                    << "    " << input.weather.visibility[i] << "m na "
+                    << compass[i];
+      }
+    }
+    std::cout << std::endl << "Chmury: " << std::endl;
+    if (!input.weather.cloudless) {
+      const char clouds[][30] = {"Nieliczne chmury", "Rozproszone chmury",
+                                 "Chmury kłębiaste", "Zachmurzenie całkowite"};
+      const char type[][30] = {"", "typu cumulonimbus", "typu cumulus",
+                               "niezmierzonego typu"};
+      for (int i = 0; i < input.weather.layers; i++) {
+        if (input.weather.clouds[i][0] != 4) {
+          std::cout << "    " << clouds[input.weather.clouds[i][0]]
+                    << " na wysokosci " << input.weather.clouds[i][1] << "m";
+          if (input.weather.clouds[i][2] != 0) {
+            std::cout << " " << type[input.weather.clouds[i][2]];
+          };
+        }
+        std::cout << std::endl;
+      }
+    } else {
+      std::cout << "    brak" << std::endl;
+    }
+  };
+}
+
 char menu() {
   std::cout << " __  __ _____ _____  _    ____  " << std::endl
             << "|  \\/  | ____|_   _|/ \\  |  _ \\ " << std::endl
@@ -404,33 +559,18 @@ void handleEntry(const char (&entry)[120]) {
   char part[20];
   for (int i = 0; i < 120; i++) {
     if (entry[i] == '\0') {
-      /* std::cout << part << std::endl; */
+      part[i - offset] = '\0';
+      tryParsers(part, result);
       break;
     } else if (entry[i] == ' ') {
       part[i - offset] = '\0';
-      if (parseICAO(part, result))
-        std::cout << result.airport << std::endl;
-      else if (parseTime(part, result))
-        std::cout << result.day << " Dzień miesiąca " << result.hour << ":"
-                  << result.minutes << " UTC" << std::endl;
-      else if (parseWindPrim(part, result))
-        std::cout << "wind " << result.wind.degree << " " << result.wind.speed
-                  << std::endl;
-      else if (parseWindSec(part, result))
-        std::cout << "wind secondary" << std::endl;
-      else if (parseVisibility(part, result))
-        std::cout << "visibility " << result.weather.visibility[0] << "m"
-                  << std::endl;
-      else if (parsePhenomena(part, result))
-        std::cout << "weather" << std::endl;
-      else if (parseClouds(part, result))
-        std::cout << "Clouds " << result.weather.clouds[0][1] << "m "
-                  << result.weather.clouds[0][0] << std::endl;
+      tryParsers(part, result);
       offset = i + 1;
     } else {
       part[i - offset] = entry[i];
     };
   };
+  printEntry(result);
   std::cout << std::endl;
 };
 
