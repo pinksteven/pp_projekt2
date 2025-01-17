@@ -25,13 +25,22 @@ struct conditions {
   // list of all possible weather types 0=not there
   // else it's a 2 digit number
   // first digit (1-4) is the intensity
-  // second digit is the characteristic
-  // so heavy showers [+SH] would be 17
-  // order {BR, DS DU, DZ, FC, FG, FU, GR, GS, HZ, IC, PE, PO, PY, RA, SA, SG,
+  // second digit is the characteristic +1
+  // so heavy showers [+SH] would be 18
+  // order {BR, DS, DU, DZ, FC, FG, FU, GR, GS, HZ, IC, PE, PO, PY, RA, SA, SG,
   // SN, SQ, SS, UP, VA} for intensity {heavy, light, RE, VC} characteristics
   // {BC, DR, MI, PR, BL, FZ, SH, TS}
   int weather[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  // out of my ass no-justsu 10 layers
+  // [layer][0=cover, 1=height, 2=CB/TCU]
+  int clouds[10][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
+                       {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+  int layers = 0; // holds the number of layers that are there
+  // height in ft, cover goes {FEW, SCT, BKN, OVC}, {CB = 1, TCU = 2, ///= 3}
+  // I'm gonna assume all the different specials just gove me "no clouds"
+  bool cloudless = false;
 };
 
 // main struct
@@ -275,6 +284,96 @@ bool parseVisibility(const char (&input)[20], metar &output) {
   return false;
 };
 
+bool parsePhenomena(const char (&input)[20], metar &output) {
+  int modifier = 1;
+  bool found = false;
+  char characteristic[][3] = {"BC", "DR", "MI", "PR", "BL", "FZ", "SH", "TS"};
+  char type[][3] = {"BR", "DS", "DU", "DZ", "FC", "FG", "FU", "GR",
+                    "GS", "HZ", "IC", "PE", "PO", "PY", "RA", "SA",
+                    "SG", "SN", "SQ", "SS", "UP", "VA"};
+  char test[3] = "";
+  for (int i = 0; i < 20; i += 2) {
+    /* std::cout << i << std::endl; */
+    test[0] = input[i];
+    test[1] = input[i + 1];
+    test[2] = '\0';
+    if (input[i] == '+') {
+      modifier += 10;
+      i--;
+    } else if (input[i] == '-') {
+      modifier += 20;
+      i--;
+    } else if (input[i] == 'R' && input[i + 1] == 'E') {
+      modifier += 30;
+    } else if (input[i] == 'V' && input[i + 1] == 'C') {
+      modifier += 40;
+    };
+    /* std::cout << test << std::endl; */
+    for (int j = 0; j < 8; j++) {
+      if (charArrCompare(characteristic[j], test)) {
+        modifier += j + 1;
+      };
+    };
+    for (int j = 0; j < 22; j++) {
+      if (charArrCompare(type[j], test)) {
+        output.weather.weather[j] = modifier;
+        found = true;
+        modifier = 1;
+      };
+    };
+  };
+  return found;
+}
+
+bool parseClouds(const char (&input)[20], metar &output) {
+  int len = length(input);
+  char pre[][4] = {"FEW", "SCT", "BKN", "OVC", "NSC",
+                   "SKC", "NCD", "CLR", "VV"};
+  bool found = false;
+  char test[4] = {input[0], input[1], input[2], '\0'};
+  for (int i = 0; i < 8; i++) {
+    if (charArrCompare(test, pre[i])) {
+      output.weather.cloudless = (i >= 4 && i <= 7) ? true : false;
+      if (i < 4) {
+        output.weather.clouds[output.weather.layers][0] = i;
+      };
+      found = true;
+      break;
+    }
+  }
+  if (!found)
+    return false;
+
+  int height;
+  for (int i = 3; i < len - 2; i++) {
+    if (isdigit(input[i])) {
+      height = (input[i] - '0') * 100 + (input[i + 1] - '0') * 10 +
+               (input[i + 2] - '0');
+      i += 3;
+    } else {
+      test[0] = input[i];
+      test[1] = input[i + 1];
+      test[2] = input[i + 2];
+      test[3] = '\0';
+
+      if (charArrCompare(test, "CB")) {
+        output.weather.clouds[output.weather.layers][2] = 1;
+        break;
+      } else if (charArrCompare(test, "TCU")) {
+        output.weather.clouds[output.weather.layers][2] = 2;
+        break;
+      } else if (charArrCompare(test, "///")) {
+        output.weather.clouds[output.weather.layers][2] = 3;
+        break;
+      }
+    }
+  }
+  output.weather.clouds[output.weather.layers][1] = height * 100;
+  output.weather.layers++;
+
+  return true;
+}
+
 char menu() {
   std::cout << " __  __ _____ _____  _    ____  " << std::endl
             << "|  \\/  | ____|_   _|/ \\  |  _ \\ " << std::endl
@@ -322,6 +421,11 @@ void handleEntry(const char (&entry)[120]) {
       else if (parseVisibility(part, result))
         std::cout << "visibility " << result.weather.visibility[0] << "m"
                   << std::endl;
+      else if (parsePhenomena(part, result))
+        std::cout << "weather" << std::endl;
+      else if (parseClouds(part, result))
+        std::cout << "Clouds " << result.weather.clouds[0][1] << "m "
+                  << result.weather.clouds[0][0] << std::endl;
       offset = i + 1;
     } else {
       part[i - offset] = entry[i];
