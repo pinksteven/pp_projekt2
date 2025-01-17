@@ -38,8 +38,8 @@ struct conditions {
   int clouds[10][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
                        {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
   int layers = 0; // holds the number of layers that are there
-  // height in ft, cover goes {FEW, SCT, BKN, OVC}, {CB = 1, TCU = 2, ///= 3}
-  // I'm gonna assume all the different specials just gove me "no clouds"
+  // height in ft, cover goes {FEW, SCT, BKN, OVC, VV}, {CB = 1, TCU = 2, ///=
+  // 3} I'm gonna assume all the different specials just gove me "no clouds"
   bool cloudless = false;
 };
 
@@ -327,14 +327,14 @@ bool parsePhenomena(const char (&input)[20], metar &output) {
 
 bool parseClouds(const char (&input)[20], metar &output) {
   int len = length(input);
-  char pre[][4] = {"FEW", "SCT", "BKN", "OVC", "NSC",
-                   "SKC", "NCD", "CLR", "VV"};
+  char pre[][4] = {"FEW", "SCT", "BKN", "OVC", "VV",
+                   "NSC", "SKC", "NCD", "CLR"};
   bool found = false;
   char test[4] = {input[0], input[1], input[2], '\0'};
   for (int i = 0; i < 8; i++) {
     if (charArrCompare(test, pre[i])) {
-      output.weather.cloudless = (i >= 4 && i <= 7) ? true : false;
-      if (i < 4) {
+      output.weather.cloudless = (i >= 5 && i <= 8) ? true : false;
+      if (i < 5) {
         output.weather.clouds[output.weather.layers][0] = i;
       };
       found = true;
