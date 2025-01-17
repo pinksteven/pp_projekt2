@@ -431,32 +431,18 @@ bool parsePressure(const char (&input)[20], metar &output) {
 }
 
 void tryParsers(const char (&input)[20], metar &output) {
-  if (parseICAO(input, output))
-    std::cout << output.airport << std::endl;
-  else if (parseTime(input, output))
-    std::cout << output.day << " Dzień miesiąca " << output.hour << ":"
-              << output.minutes << " UTC" << std::endl;
-  else if (parseWindPrim(input, output))
-    std::cout << "wind " << output.wind.degree << " " << output.wind.speed
-              << std::endl;
-  else if (parseWindSec(input, output))
-    std::cout << "wind secondary" << std::endl;
-  else if (charArrCompare(input, "CAVOK")) {
+  if (parseICAO(input, output)) {
+  } else if (parseTime(input, output)) {
+  } else if (parseWindPrim(input, output)) {
+  } else if (parseWindSec(input, output)) {
+  } else if (charArrCompare(input, "CAVOK")) {
     output.weather.cavok = true;
-    std::cout << "CAVOK" << std::endl;
-  } else if (parseVisibility(input, output))
-    std::cout << "visibility " << output.weather.visibility[0] << "m"
-              << std::endl;
-  else if (parsePhenomena(input, output))
-    std::cout << "weather" << std::endl;
-  else if (parseClouds(input, output))
-    std::cout << "Clouds " << output.weather.clouds[0][1] << "m "
-              << output.weather.clouds[0][0] << std::endl;
-  else if (parseTemperature(input, output))
-    std::cout << "Temperature " << output.temperature << " Dew " << output.dew
-              << std::endl;
-  else if (parsePressure(input, output))
-    std::cout << "Pressure " << output.pressure << "hPa" << std::endl;
+  } else if (parseVisibility(input, output)) {
+  } else if (parsePhenomena(input, output)) {
+  } else if (parseClouds(input, output)) {
+  } else if (parseTemperature(input, output)) {
+  } else if (parsePressure(input, output)) {
+  }
 }
 
 void printEntry(const metar &input) {
@@ -526,6 +512,45 @@ void printEntry(const metar &input) {
     } else {
       std::cout << "    brak" << std::endl;
     }
+    const char intensity[][20] = {"", "silne", "lekkie", "niedawne",
+                                  "pobliskie"};
+    const char modifier[][20] = {
+        "",        "płaty",          "niska zamieć",    "niska", "częściowy",
+        "zawieja", "marznące opady", "przelotne opady", "burza"};
+    const char event[][30] = {"zamglenie",
+                              "burza pyłu",
+                              "rozległy pył",
+                              "mżawka",
+                              "trąba powietrzna",
+                              "mgła",
+                              "dymy",
+                              "grad",
+                              "krupa śnieżna",
+                              "zmętnienie",
+                              "słupki lodowe",
+                              "deszcz lodowy",
+                              "wiry pyłowe",
+                              "mgiełka wodna",
+                              "deszcz",
+                              "piasek",
+                              "śnieg ziarnisty",
+                              "śnieg",
+                              "nawałnica",
+                              "burza piaskowa",
+                              "nieznane opady",
+                              "popiół wulkaniczny"};
+    bool first = true;
+    std::cout << "Zjawiska pogodowe: " << std::endl;
+    for (int i = 0; i < 10; i++) {
+      if (input.weather.weather[i] != 0) {
+        first = false;
+        std::cout << "    " << intensity[(input.weather.weather[i] / 10)] << " "
+                  << modifier[(input.weather.weather[i] % 10) - 1] << " "
+                  << event[i] << std::endl;
+      }
+    }
+    if (first)
+      std::cout << "    brak" << std::endl;
   };
 }
 
