@@ -1,8 +1,10 @@
 // Stanisław Latuszek 203248
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <locale>
 
+// hold all wind data
 struct air {
   bool measured;
   bool direct_stable;
@@ -12,13 +14,35 @@ struct air {
   char unit[4];
   bool vrb = false;
 };
+// weather condition (clouds, visibility, precipitation, temperature)
+struct conditions {
+  bool cavok = false;
+  // for directional it goes [N, NE, E, SE, S, SW, W, NW]
+  // else take the index 0
+  bool directional = false;
+  int visibility[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
+  // list of all possible weather types 0=not there
+  // else it's a 2 digit number
+  // first digit (1-4) is the intensity
+  // second digit is the characteristic
+  // so heavy showers [+SH] would be 17
+  // order {BR, DS DU, DZ, FC, FG, FU, GR, GS, HZ, IC, PE, PO, PY, RA, SA, SG,
+  // SN, SQ, SS, UP, VA} for intensity {heavy, light, RE, VC} characteristics
+  // {BC, DR, MI, PR, BL, FZ, SH, TS}
+  int weather[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+};
+
+// main struct
 struct metar {
   char airport[30];
   int day, hour, minutes;
   air wind;
+  conditions weather;
 };
 
+// system use different commands :/
 void clear() {
 #if defined(_WIN32) || defined(_WIN64)
   std::system("cls");
@@ -43,6 +67,17 @@ bool charArrCompare(const char *a, const char *b) {
   };
   return true;
 };
+
+int length(const char *a) {
+  int out = 0;
+  for (int i = 0; i < 20; i++) {
+    if (a[i] == '\0') {
+      out = i;
+      break;
+    };
+  };
+  return out;
+}
 
 bool parseICAO(const char (&input)[20], metar &output) {
   const char CODES[][5] = {"EPWA", "EPKK", "EPGD", "EPKT", "EPWR",
@@ -131,7 +166,7 @@ bool parseWindPrim(const char (&input)[20], metar &output) {
       break;
     };
   };
-  if (charArrCompare(test, "MPS") || charArrCompare(test, "MPS"))
+  if (charArrCompare(test, "MPH") || charArrCompare(test, "MPS"))
     charArrCpy(output.wind.unit, test);
   else if (test[1] == 'K' && test[2] == 'T')
     charArrCpy(output.wind.unit, "KT");
@@ -174,13 +209,7 @@ bool parseWindPrim(const char (&input)[20], metar &output) {
 };
 
 bool parseWindSec(const char (&input)[20], metar &output) {
-  int len;
-  for (int i = 0; i < 20; i++) {
-    if (input[i] == '\0') {
-      len = i;
-      break;
-    };
-  };
+  int len = length(input);
   if (len != 7 || input[3] != 'V')
     return false;
 
@@ -190,6 +219,60 @@ bool parseWindSec(const char (&input)[20], metar &output) {
   output.wind.deg_upto =
       (input[4] - '0') * 100 + (input[5] - '0') * 10 + (input[6] - '0');
   return true;
+};
+
+bool parseVisibility(const char (&input)[20], metar &output) {
+  int len = length(input);
+  int vis = 0;
+  int offset = 0;
+  char end[4] = "";
+  for (int i = 0; i < len; i++) {
+    if (isdigit(input[i])) {
+      vis = vis * 10 + (input[i] - '0');
+      offset++;
+    } else if (isupper(input[i])) {
+      end[i - offset] = input[i];
+    } else {
+      return false;
+    };
+  };
+  if (charArrCompare(end, "") || charArrCompare(end, "NDV")) {
+    output.weather.visibility[0] = vis;
+    return true;
+  } else if (charArrCompare(end, "N")) {
+    output.weather.directional = true;
+    output.weather.visibility[0] = vis;
+    return true;
+  } else if (charArrCompare(end, "NE")) {
+    output.weather.directional = true;
+    output.weather.visibility[1] = vis;
+    return true;
+  } else if (charArrCompare(end, "E")) {
+    output.weather.directional = true;
+    output.weather.visibility[2] = vis;
+    return true;
+  } else if (charArrCompare(end, "SE")) {
+    output.weather.directional = true;
+    output.weather.visibility[3] = vis;
+    return true;
+  } else if (charArrCompare(end, "S")) {
+    output.weather.directional = true;
+    output.weather.visibility[4] = vis;
+    return true;
+  } else if (charArrCompare(end, "SW")) {
+    output.weather.directional = true;
+    output.weather.visibility[5] = vis;
+    return true;
+  } else if (charArrCompare(end, "W")) {
+    output.weather.directional = true;
+    output.weather.visibility[6] = vis;
+    return true;
+  } else if (charArrCompare(end, "NW")) {
+    output.weather.directional = true;
+    output.weather.visibility[7] = vis;
+    return true;
+  }
+  return false;
 };
 
 char menu() {
@@ -236,6 +319,9 @@ void handleEntry(const char (&entry)[120]) {
                   << std::endl;
       else if (parseWindSec(part, result))
         std::cout << "wind secondary" << std::endl;
+      else if (parseVisibility(part, result))
+        std::cout << "visibility " << result.weather.visibility[0] << "m"
+                  << std::endl;
       offset = i + 1;
     } else {
       part[i - offset] = entry[i];
@@ -267,6 +353,7 @@ int main() {
     handleFile("./Metar_przykładowe_pliki/Metar_Gdansk.txt");
     break;
   case 'n':
+    // TODO: implement
     std::cout << "making a new file, rly rly" << std::endl;
     break;
   case 'q':
