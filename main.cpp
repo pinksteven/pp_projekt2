@@ -806,7 +806,6 @@ void createMetar() {
   }
   char code[5];
   charArrCpy(code, CODES[num - 1]);
-  std::cout << code << std::endl;
   char separator;
   int day, hour, minutes;
   std::cout << "Podaj dzień miesiąca: ";
