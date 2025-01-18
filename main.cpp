@@ -775,6 +775,98 @@ void handleFile(char in_path[], char out_path[]) {
   mergeTmpFiles(out_path);
 };
 
+void createMetar() {
+  const char CODES[][5] = {"EPWA", "EPKK", "EPGD", "EPKT", "EPWR",
+                           "EPMO", "EPPO", "EPRZ", "EPSC", "EPLB",
+                           "EPBY", "EPLL", "EPSY", "EPRA", "EPZG"};
+  const char AIRPORTS[][30] = {"Warszawa Okęcie",
+                               "Kraków-Balice",
+                               "Gdańsk-Rębiechowo",
+                               "Katowice w Pyrzowicach",
+                               "Wrocław-Strachowice",
+                               "Warszawa-Modlin",
+                               "Poznań-Ławica",
+                               "Rzeszów-Jasionka",
+                               "Szczecin-Goleniów",
+                               "Lublin",
+                               "Bydgoszcz",
+                               "Łódź",
+                               "Olsztyn-Mazury",
+                               "Warszawa-Radom",
+                               "Zielona Góra-Babimost"};
+  std::cout << "GENERATOR METAR" << std::endl;
+  for (int i = 0; i < 15; i++) {
+    std::cout << i + 1 << " - " << AIRPORTS[i] << std::endl;
+  }
+  std::cout << "Wybierz z którego lotniska są dane[1-15]: ";
+  int num;
+  while (!(std::cin >> num) || num < 1 || num > 15) {
+    std::cout << "Niepoprawny wybór, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  char code[5];
+  charArrCpy(code, CODES[num - 1]);
+  std::cout << code << std::endl;
+  char separator;
+  int day, hour, minutes;
+  std::cout << "Podaj dzień miesiąca: ";
+  while (!(std::cin >> day) || day < 1 || day > 31) {
+    std::cout << "Niepoprawny dzień miesiąca, spróbuj ponownie: ";
+    std::cin.clear();
+  };
+  std::cout << "Podaj godzinę UTC pomiaru w formacie HH:MM: ";
+  while (!(std::cin >> hour >> separator >> minutes) || hour < 0 || hour > 23 ||
+         minutes < 0 || minutes > 59) {
+    std::cout << "Niepoprawny czas UTC, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  int deg, speed;
+  std::cout << "Podaj kierunek wiatru w stopniach: ";
+  while (!(std::cin >> deg) || deg < 0 || deg > 360) {
+    std::cout << "Niepoprawny kierunek, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  std::cout << "Podaj prędkość wiatru w węzłach: ";
+  while (!(std::cin >> speed) || speed < 0) {
+    std::cout << "Ujemna prędkość nie istnieje, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  int temperature, dew;
+  std::cout << "Podaj temperaturę powietrza w °C: ";
+  while (!(std::cin >> temperature) || temperature < -273) {
+    std::cout << "Niepoprawna temperatura, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  std::cout << "Podaj temperaturę punktu rosy w °C: ";
+  while (!(std::cin >> dew) || dew < -273) {
+    std::cout << "Niepoprawna temperatura, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  int pressure;
+  std::cout << "Podaj ciśnienie atmosferyczne w hPa: ";
+  while (!(std::cin >> pressure) || pressure < 0) {
+    std::cout << "Niepoprawny wybór, spróbuj ponownie: ";
+    std::cin.clear();
+  }
+  std::cout << std::endl << "Wygenerowana depesza METAR:" << std::endl;
+  std::cout << code << " " << std::setfill('0') << std::setw(2) << day
+            << std::setw(2) << hour << std::setw(2) << minutes << "Z "
+            << std::setw(3) << deg << std::setw(2) << speed << "KT ";
+  if (temperature < 0) {
+    std::cout << 'M' << std::setfill('0') << std::setw(2) << temperature * -1
+              << '/';
+  } else {
+    std::cout << std::setfill('0') << std::setw(2) << temperature << '/';
+  }
+  if (dew < 0) {
+    std::cout << 'M' << std::setfill('0') << std::setw(2) << dew * -1;
+  } else {
+    std::cout << std::setfill('0') << std::setw(2) << dew;
+  }
+  std::cout << " Q" << std::setfill('0') << std::setw(4) << pressure
+            << std::endl;
+}
+
 int main() {
   // Set up utf locale for correct encoding on windows
   std::locale::global(std::locale("pl_PL.UTF-8"));
@@ -791,19 +883,20 @@ int main() {
       std::cin >> output;
       clear();
       handleFile(input, output);
-      char input;
-      std::cout << "Wpisz b aby powrócić do menu: ";
-      while (!(std::cin >> input) || std::tolower(input) != 'b') {
-        std::cin.clear();
-      };
       break;
     case 'n':
       // TODO: implement
-      std::cout << "making a new file, rly rly" << std::endl;
+      clear();
+      createMetar();
       break;
     case 'q':
       return 0;
     }
+    char back;
+    std::cout << "Wpisz b aby powrócić do menu: ";
+    while (!(std::cin >> back) || std::tolower(back) != 'b') {
+      std::cin.clear();
+    };
   } while (mode != 'q');
   return 0;
 };
