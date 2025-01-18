@@ -36,7 +36,7 @@ struct conditions {
   int weather[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-  // out of my ass no-justsu 10 layers
+  // 10 layers should be fine
   // [layer][0=cover, 1=height, 2=CB/TCU]
   int clouds[10][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
                        {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
