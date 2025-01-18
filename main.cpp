@@ -1,5 +1,7 @@
 // Stanisław Latuszek 203248
 #include <cctype>
+#include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -552,6 +554,165 @@ void printEntry(const metar &input) {
     if (first)
       std::cout << "    brak" << std::endl;
   };
+  std::cout << std::endl;
+}
+
+void saveEntry(metar input) {
+  const char AIRPORTS[][30] = {"Warszawa Okęcie",
+                               "Kraków-Balice",
+                               "Gdańsk-Rębiechowo",
+                               "Katowice w Pyrzowicach",
+                               "Wrocław-Strachowice",
+                               "Warszawa-Modlin",
+                               "Poznań-Ławica",
+                               "Rzeszów-Jasionka",
+                               "Szczecin-Goleniów",
+                               "Lublin",
+                               "Bydgoszcz",
+                               "Łódź",
+                               "Olsztyn-Mazury",
+                               "Warszawa-Radom",
+                               "Zielona Góra-Babimost"};
+  std::fstream out_file;
+  std::filesystem::create_directory("./tmp");
+  for (int i = 0; i < 15; i++) {
+    if (charArrCompare(input.airport, AIRPORTS[i])) {
+      char num = i + '0';
+      char path[] = {'.', '/', 't', 'm', 'p', '/',
+                     num, '.', 't', 'x', 't', '\0'};
+      if (std::filesystem::exists(path)) {
+        out_file.open(path, std::ofstream::app);
+      } else {
+        out_file.open(path, std::ofstream::app);
+        out_file << AIRPORTS[i] << ":" << std::endl;
+      }
+    }
+  }
+  out_file << std::endl;
+  out_file << std::setfill('0') << std::setw(2) << input.day
+           << " Dzień miesiąca " << std::setw(2) << input.hour << ":"
+           << std::setw(2) << input.minutes << "UTC" << std::endl;
+  out_file << "Wiatr: " << std::endl;
+  if (input.wind.measured) {
+    if (input.wind.vrb) {
+      out_file << "    kierunek zmienny";
+    } else {
+      out_file << "    z kieruneku " << input.wind.degree << "°";
+      if (!input.wind.direct_stable)
+        out_file << " zmienny od " << input.wind.deg_from << "° do "
+                 << input.wind.deg_upto << "°";
+    }
+    out_file << std::endl << "    prędkość " << input.wind.speed << " węzłów";
+    if (!input.wind.speed_stable)
+      out_file << " w porywach do " << input.wind.speed_upto << " węzłów";
+
+  } else {
+    out_file << "    nie zmierzony" << std::endl;
+  }
+  out_file << std::endl
+           << std::setfill('0') << "Temperatura:" << std::endl
+           << "    powietrza " << std::setw(2) << input.temperature << "°C"
+           << std::endl
+           << "    punktu rosy " << std::setw(2) << input.dew << "°C"
+           << std::endl;
+  out_file << "Ciśnienie atmosferyczne: " << input.pressure << "hPa"
+           << std::endl;
+  if (input.weather.cavok) {
+    out_file << "Widoczność i chumry w porządku" << std::endl;
+  } else {
+    out_file << "Widoczność: ";
+    if (!input.weather.directional) {
+      out_file << input.weather.visibility[0] << "m";
+    } else {
+      const char compass[][20] = {
+          "północ",   "północny-wschód",   "wschód", "południowy-wschód",
+          "południe", "południowy-zachod", "zachod", "północny-zachod"};
+      for (int i = 0; i < 8; i++) {
+
+        if (input.weather.visibility[i] != -1)
+          out_file << std::endl
+                   << "    " << input.weather.visibility[i] << "m na "
+                   << compass[i];
+      }
+    }
+    out_file << std::endl << "Chmury: " << std::endl;
+    if (!input.weather.cloudless) {
+      const char clouds[][30] = {"Nieliczne chmury", "Rozproszone chmury",
+                                 "Chmury kłębiaste", "Zachmurzenie całkowite"};
+      const char type[][30] = {"", "typu cumulonimbus", "typu cumulus",
+                               "niezmierzonego typu"};
+      for (int i = 0; i < input.weather.layers; i++) {
+        if (input.weather.clouds[i][0] != 4) {
+          out_file << "    " << clouds[input.weather.clouds[i][0]]
+                   << " na wysokosci " << input.weather.clouds[i][1] << "m";
+          if (input.weather.clouds[i][2] != 0) {
+            out_file << " " << type[input.weather.clouds[i][2]];
+          };
+        }
+        out_file << std::endl;
+      }
+    } else {
+      out_file << "    brak" << std::endl;
+    }
+    const char intensity[][20] = {"", "silne", "lekkie", "niedawne",
+                                  "pobliskie"};
+    const char modifier[][20] = {
+        "",        "płaty",          "niska zamieć",    "niska", "częściowy",
+        "zawieja", "marznące opady", "przelotne opady", "burza"};
+    const char event[][30] = {"zamglenie",
+                              "burza pyłu",
+                              "rozległy pył",
+                              "mżawka",
+                              "trąba powietrzna",
+                              "mgła",
+                              "dymy",
+                              "grad",
+                              "krupa śnieżna",
+                              "zmętnienie",
+                              "słupki lodowe",
+                              "deszcz lodowy",
+                              "wiry pyłowe",
+                              "mgiełka wodna",
+                              "deszcz",
+                              "piasek",
+                              "śnieg ziarnisty",
+                              "śnieg",
+                              "nawałnica",
+                              "burza piaskowa",
+                              "nieznane opady",
+                              "popiół wulkaniczny"};
+    bool first = true;
+    out_file << "Zjawiska pogodowe: " << std::endl;
+    for (int i = 0; i < 10; i++) {
+      if (input.weather.weather[i] != 0) {
+        first = false;
+        out_file << "    " << intensity[(input.weather.weather[i] / 10)] << " "
+                 << modifier[(input.weather.weather[i] % 10) - 1] << " "
+                 << event[i] << std::endl;
+      }
+    }
+    if (first)
+      out_file << "    brak" << std::endl;
+  };
+}
+
+void mergeTmpFiles(char out_path[]) {
+  std::fstream out, part;
+  out.open(out_path, std::fstream::out);
+  out << "bullshit" << std::endl;
+  for (int i = 0; i < 15; i++) {
+    char num = i + '0';
+    char path[] = {'.', '/', 't', 'm', 'p', '/', num, '.', 't', 'x', 't', '\0'};
+    if (std::filesystem::exists(path)) {
+      part.open(path);
+      while (part.peek() != EOF) {
+        char line[300];
+        part.getline(line, 300);
+        out << line << std::endl;
+      };
+    }
+  }
+  std::filesystem::remove_all("./tmp");
 }
 
 char menu() {
@@ -578,7 +739,7 @@ char menu() {
   return tolower(input);
 };
 
-void handleEntry(const char (&entry)[120]) {
+void handleEntry(const char (&entry)[120], bool print) {
   metar result;
   int offset = 0;
   char part[20];
@@ -595,38 +756,54 @@ void handleEntry(const char (&entry)[120]) {
       part[i - offset] = entry[i];
     };
   };
-  printEntry(result);
-  std::cout << std::endl;
+  if (print)
+    printEntry(result);
+  saveEntry(result);
 };
 
-void handleFile(std::string path) {
+void handleFile(char in_path[], char out_path[]) {
   std::fstream in_file;
-  in_file.open("./Metar_przykładowe_pliki/Metar_Gdansk.txt");
+  in_file.open(in_path);
+  int i = 0;
   while (in_file.peek() != EOF) {
     char entry[120];
     in_file.getline(entry, 120);
-    std::cout << entry << std::endl;
-    handleEntry(entry);
-    std::cout << std::endl;
+    handleEntry(entry, (i < 3));
+    i++;
     entry[0] = '\0';
   };
+  mergeTmpFiles(out_path);
 };
 
 int main() {
   // Set up utf locale for correct encoding on windows
   std::locale::global(std::locale("pl_PL.UTF-8"));
-  char mode = menu();
-
-  switch (mode) {
-  case 'o':
-    handleFile("./Metar_przykładowe_pliki/Metar_Gdansk.txt");
-    break;
-  case 'n':
-    // TODO: implement
-    std::cout << "making a new file, rly rly" << std::endl;
-    break;
-  case 'q':
-    return 0;
-  }
+  char mode;
+  do {
+    clear();
+    mode = menu();
+    char input[999], output[999];
+    switch (mode) {
+    case 'o':
+      std::cout << "Podaj ścieżkę pliku wejściowego: ";
+      std::cin >> input;
+      std::cout << "Podaj ścieżkę pliku wyjściowego: ";
+      std::cin >> output;
+      clear();
+      handleFile(input, output);
+      char input;
+      std::cout << "Wpisz b aby powrócić do menu: ";
+      while (!(std::cin >> input) || std::tolower(input) != 'b') {
+        std::cin.clear();
+      };
+      break;
+    case 'n':
+      // TODO: implement
+      std::cout << "making a new file, rly rly" << std::endl;
+      break;
+    case 'q':
+      return 0;
+    }
+  } while (mode != 'q');
   return 0;
 };
