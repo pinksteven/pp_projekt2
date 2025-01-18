@@ -1,11 +1,8 @@
-// Stanisław Latuszek 203248
-#include <cctype>
-#include <cstdio>
+// Stanislaw Latuszek 203248
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <locale>
 
 // hold all wind data
 struct air {
@@ -98,21 +95,21 @@ bool parseICAO(const char (&input)[20], metar &output) {
   const char CODES[][5] = {"EPWA", "EPKK", "EPGD", "EPKT", "EPWR",
                            "EPMO", "EPPO", "EPRZ", "EPSC", "EPLB",
                            "EPBY", "EPLL", "EPSY", "EPRA", "EPZG"};
-  const char AIRPORTS[][30] = {"Warszawa Okęcie",
-                               "Kraków-Balice",
-                               "Gdańsk-Rębiechowo",
+  const char AIRPORTS[][30] = {"Warszawa Okecie",
+                               "Krakow-Balice",
+                               "Gdansk-Rebiechowo",
                                "Katowice w Pyrzowicach",
-                               "Wrocław-Strachowice",
+                               "Wroclaw-Strachowice",
                                "Warszawa-Modlin",
-                               "Poznań-Ławica",
-                               "Rzeszów-Jasionka",
-                               "Szczecin-Goleniów",
+                               "Poznan-lawica",
+                               "Rzeszow-Jasionka",
+                               "Szczecin-Goleniow",
                                "Lublin",
                                "Bydgoszcz",
-                               "Łódź",
+                               "Lodz",
                                "Olsztyn-Mazury",
                                "Warszawa-Radom",
-                               "Zielona Góra-Babimost"};
+                               "Zielona Gora-Babimost"};
 
   for (int i = 0; i < 20; i++) {
     if (input[i] == '\0') {
@@ -449,7 +446,7 @@ void tryParsers(const char (&input)[20], metar &output) {
 
 void printEntry(const metar &input) {
   std::cout << std::setfill('0') << std::setw(2) << input.day
-            << " Dzień miesiąca " << std::setw(2) << input.hour << ":"
+            << " Dzien miesiaca " << std::setw(2) << input.hour << ":"
             << std::setw(2) << input.minutes << "UTC" << std::endl;
   std::cout << "Lotnisko " << input.airport << std::endl;
   std::cout << "Wiatr: " << std::endl;
@@ -457,36 +454,36 @@ void printEntry(const metar &input) {
     if (input.wind.vrb) {
       std::cout << "    kierunek zmienny";
     } else {
-      std::cout << "    z kieruneku " << input.wind.degree << "°";
+      std::cout << "    z kierunku " << input.wind.degree << " stopni";
       if (!input.wind.direct_stable)
-        std::cout << " zmienny od " << input.wind.deg_from << "° do "
-                  << input.wind.deg_upto << "°";
+        std::cout << " zmienny od " << input.wind.deg_from << " do "
+                  << input.wind.deg_upto;
     }
-    std::cout << std::endl << "    prędkość " << input.wind.speed << " węzłów";
+    std::cout << std::endl << "    predkosc " << input.wind.speed << " wezlow";
     if (!input.wind.speed_stable)
-      std::cout << " w porywach do " << input.wind.speed_upto << " węzłów";
+      std::cout << " w porywach do " << input.wind.speed_upto << " wezlow";
 
   } else {
     std::cout << "    nie zmierzony" << std::endl;
   }
   std::cout << std::endl
             << std::setfill('0') << "Temperatura:" << std::endl
-            << "    powietrza " << std::setw(2) << input.temperature << "°C"
+            << "    powietrza " << std::setw(2) << input.temperature << "C"
             << std::endl
-            << "    punktu rosy " << std::setw(2) << input.dew << "°C"
+            << "    punktu rosy " << std::setw(2) << input.dew << "C"
             << std::endl;
-  std::cout << "Ciśnienie atmosferyczne: " << input.pressure << "hPa"
+  std::cout << "Cisnienie atmosferyczne: " << input.pressure << "hPa"
             << std::endl;
   if (input.weather.cavok) {
-    std::cout << "Widoczność i chumry w porządku" << std::endl;
+    std::cout << "Widocznosc i chumry w porzadku" << std::endl;
   } else {
-    std::cout << "Widoczność: ";
+    std::cout << "Widocznosc: ";
     if (!input.weather.directional) {
       std::cout << input.weather.visibility[0] << "m";
     } else {
       const char compass[][20] = {
-          "północ",   "północny-wschód",   "wschód", "południowy-wschód",
-          "południe", "południowy-zachod", "zachod", "północny-zachod"};
+          "polnoc",   "polnocny-wschod",   "wschod", "poludniowy-wschod",
+          "poludnie", "poludniowy-zachod", "zachod", "polnocny-zachod"};
       for (int i = 0; i < 8; i++) {
 
         if (input.weather.visibility[i] != -1)
@@ -498,7 +495,7 @@ void printEntry(const metar &input) {
     std::cout << std::endl << "Chmury: " << std::endl;
     if (!input.weather.cloudless) {
       const char clouds[][30] = {"Nieliczne chmury", "Rozproszone chmury",
-                                 "Chmury kłębiaste", "Zachmurzenie całkowite"};
+                                 "Chmury klebiaste", "Zachmurzenie calkowite"};
       const char type[][30] = {"", "typu cumulonimbus", "typu cumulus",
                                "niezmierzonego typu"};
       for (int i = 0; i < input.weather.layers; i++) {
@@ -517,30 +514,30 @@ void printEntry(const metar &input) {
     const char intensity[][20] = {"", "silne", "lekkie", "niedawne",
                                   "pobliskie"};
     const char modifier[][20] = {
-        "",        "płaty",          "niska zamieć",    "niska", "częściowy",
-        "zawieja", "marznące opady", "przelotne opady", "burza"};
+        "",        "platy",          "niska zamiec",    "niska", "czesciowy",
+        "zawieja", "marznace opady", "przelotne opady", "burza"};
     const char event[][30] = {"zamglenie",
-                              "burza pyłu",
-                              "rozległy pył",
-                              "mżawka",
-                              "trąba powietrzna",
-                              "mgła",
+                              "burza pylu",
+                              "rozlegly pyl",
+                              "mzawka",
+                              "traba powietrzna",
+                              "mgla",
                               "dymy",
                               "grad",
-                              "krupa śnieżna",
-                              "zmętnienie",
-                              "słupki lodowe",
+                              "krupa sniezna",
+                              "zmetnienie",
+                              "slupki lodowe",
                               "deszcz lodowy",
-                              "wiry pyłowe",
-                              "mgiełka wodna",
+                              "wiry pylowe",
+                              "mgielka wodna",
                               "deszcz",
                               "piasek",
-                              "śnieg ziarnisty",
-                              "śnieg",
-                              "nawałnica",
+                              "snieg ziarnisty",
+                              "snieg",
+                              "nawalnica",
                               "burza piaskowa",
                               "nieznane opady",
-                              "popiół wulkaniczny"};
+                              "popiol wulkaniczny"};
     bool first = true;
     std::cout << "Zjawiska pogodowe: " << std::endl;
     for (int i = 0; i < 10; i++) {
@@ -558,21 +555,21 @@ void printEntry(const metar &input) {
 }
 
 void saveEntry(metar input) {
-  const char AIRPORTS[][30] = {"Warszawa Okęcie",
-                               "Kraków-Balice",
-                               "Gdańsk-Rębiechowo",
+  const char AIRPORTS[][30] = {"Warszawa Okecie",
+                               "Krakow-Balice",
+                               "Gdansk-Rebiechowo",
                                "Katowice w Pyrzowicach",
-                               "Wrocław-Strachowice",
+                               "Wroclaw-Strachowice",
                                "Warszawa-Modlin",
-                               "Poznań-Ławica",
-                               "Rzeszów-Jasionka",
-                               "Szczecin-Goleniów",
+                               "Poznan-lawica",
+                               "Rzeszow-Jasionka",
+                               "Szczecin-Goleniow",
                                "Lublin",
                                "Bydgoszcz",
-                               "Łódź",
+                               "Lodz",
                                "Olsztyn-Mazury",
                                "Warszawa-Radom",
-                               "Zielona Góra-Babimost"};
+                               "Zielona Gora-Babimost"};
   std::fstream out_file;
   std::filesystem::create_directory("./tmp");
   for (int i = 0; i < 15; i++) {
@@ -590,43 +587,43 @@ void saveEntry(metar input) {
   }
   out_file << std::endl;
   out_file << std::setfill('0') << std::setw(2) << input.day
-           << " Dzień miesiąca " << std::setw(2) << input.hour << ":"
+           << " Dzien miesiaca " << std::setw(2) << input.hour << ":"
            << std::setw(2) << input.minutes << "UTC" << std::endl;
   out_file << "Wiatr: " << std::endl;
   if (input.wind.measured) {
     if (input.wind.vrb) {
       out_file << "    kierunek zmienny";
     } else {
-      out_file << "    z kieruneku " << input.wind.degree << "°";
+      out_file << "    z kierunku " << input.wind.degree << "";
       if (!input.wind.direct_stable)
-        out_file << " zmienny od " << input.wind.deg_from << "° do "
-                 << input.wind.deg_upto << "°";
+        out_file << " zmienny od " << input.wind.deg_from << " do "
+                 << input.wind.deg_upto << "";
     }
-    out_file << std::endl << "    prędkość " << input.wind.speed << " węzłów";
+    out_file << std::endl << "    predkosc " << input.wind.speed << " wezlow";
     if (!input.wind.speed_stable)
-      out_file << " w porywach do " << input.wind.speed_upto << " węzłów";
+      out_file << " w porywach do " << input.wind.speed_upto << " wezlow";
 
   } else {
     out_file << "    nie zmierzony" << std::endl;
   }
   out_file << std::endl
            << std::setfill('0') << "Temperatura:" << std::endl
-           << "    powietrza " << std::setw(2) << input.temperature << "°C"
+           << "    powietrza " << std::setw(2) << input.temperature << "C"
            << std::endl
-           << "    punktu rosy " << std::setw(2) << input.dew << "°C"
+           << "    punktu rosy " << std::setw(2) << input.dew << "C"
            << std::endl;
-  out_file << "Ciśnienie atmosferyczne: " << input.pressure << "hPa"
+  out_file << "Cisnienie atmosferyczne: " << input.pressure << "hPa"
            << std::endl;
   if (input.weather.cavok) {
-    out_file << "Widoczność i chumry w porządku" << std::endl;
+    out_file << "Widocznosc i chumry w porzadku" << std::endl;
   } else {
-    out_file << "Widoczność: ";
+    out_file << "Widocznosc: ";
     if (!input.weather.directional) {
       out_file << input.weather.visibility[0] << "m";
     } else {
       const char compass[][20] = {
-          "północ",   "północny-wschód",   "wschód", "południowy-wschód",
-          "południe", "południowy-zachod", "zachod", "północny-zachod"};
+          "polnoc",   "polnocny-wschod",   "wschod", "poludniowy-wschod",
+          "poludnie", "poludniowy-zachod", "zachod", "polnocny-zachod"};
       for (int i = 0; i < 8; i++) {
 
         if (input.weather.visibility[i] != -1)
@@ -638,7 +635,7 @@ void saveEntry(metar input) {
     out_file << std::endl << "Chmury: " << std::endl;
     if (!input.weather.cloudless) {
       const char clouds[][30] = {"Nieliczne chmury", "Rozproszone chmury",
-                                 "Chmury kłębiaste", "Zachmurzenie całkowite"};
+                                 "Chmury klebiaste", "Zachmurzenie calkowite"};
       const char type[][30] = {"", "typu cumulonimbus", "typu cumulus",
                                "niezmierzonego typu"};
       for (int i = 0; i < input.weather.layers; i++) {
@@ -657,30 +654,30 @@ void saveEntry(metar input) {
     const char intensity[][20] = {"", "silne", "lekkie", "niedawne",
                                   "pobliskie"};
     const char modifier[][20] = {
-        "",        "płaty",          "niska zamieć",    "niska", "częściowy",
-        "zawieja", "marznące opady", "przelotne opady", "burza"};
+        "",        "platy",          "niska zamiec",    "niska", "czesciowy",
+        "zawieja", "marznace opady", "przelotne opady", "burza"};
     const char event[][30] = {"zamglenie",
-                              "burza pyłu",
-                              "rozległy pył",
-                              "mżawka",
-                              "trąba powietrzna",
-                              "mgła",
+                              "burza pylu",
+                              "rozlegly pyl",
+                              "mzawka",
+                              "traba powietrzna",
+                              "mgla",
                               "dymy",
                               "grad",
-                              "krupa śnieżna",
-                              "zmętnienie",
-                              "słupki lodowe",
+                              "krupa sniezna",
+                              "zmetnienie",
+                              "slupki lodowe",
                               "deszcz lodowy",
-                              "wiry pyłowe",
-                              "mgiełka wodna",
+                              "wiry pylowe",
+                              "mgielka wodna",
                               "deszcz",
                               "piasek",
-                              "śnieg ziarnisty",
-                              "śnieg",
-                              "nawałnica",
+                              "snieg ziarnisty",
+                              "snieg",
+                              "nawalnica",
                               "burza piaskowa",
                               "nieznane opady",
-                              "popiół wulkaniczny"};
+                              "popiol wulkaniczny"};
     bool first = true;
     out_file << "Zjawiska pogodowe: " << std::endl;
     for (int i = 0; i < 10; i++) {
@@ -699,7 +696,6 @@ void saveEntry(metar input) {
 void mergeTmpFiles(char out_path[]) {
   std::fstream out, part;
   out.open(out_path, std::fstream::out);
-  out << "bullshit" << std::endl;
   for (int i = 0; i < 15; i++) {
     char num = i + '0';
     char path[] = {'.', '/', 't', 'm', 'p', '/', num, '.', 't', 'x', 't', '\0'};
@@ -712,6 +708,7 @@ void mergeTmpFiles(char out_path[]) {
       };
     }
   }
+  part.close();
   std::filesystem::remove_all("./tmp");
 }
 
@@ -721,19 +718,19 @@ char menu() {
             << "| |\\/| |  _|   | | / _ \\ | |_) |" << std::endl
             << "| |  | | |___  | |/ ___ \\|  _ < " << std::endl
             << "|_|  |_|_____| |_/_/   \\_\\_| \\_\\" << std::endl
-            << "      Przez: Stanisław Latuszek 203248" << std::endl
+            << "      Przez: Stanislaw Latuszek 203248" << std::endl
             << std::endl;
 
   char input;
-  std::cout << "Wybierz jedną z opcji: " << std::endl
+  std::cout << "Wybierz jedna z opcji: " << std::endl
             << "'o' - odczyt z pliku" << std::endl
-            << "'n' - stwórz nowy METAR" << std::endl
-            << "'q' - wyjście z programu" << std::endl
-            << "Twój wybór: ";
+            << "'n' - stworz nowy METAR" << std::endl
+            << "'q' - wyjscie z programu" << std::endl
+            << "Twoj wybor: ";
   while (!(std::cin >> input) ||
          (std::tolower(input) != 'o' && std::tolower(input) != 'n' &&
           std::tolower(input) != 'q')) {
-    std::cout << "Niepoprawny wybór, spróbuj ponownie: ";
+    std::cout << "Niepoprawny wybor, sprobuj ponownie: ";
     std::cin.clear();
   };
   return tolower(input);
@@ -779,72 +776,72 @@ void createMetar() {
   const char CODES[][5] = {"EPWA", "EPKK", "EPGD", "EPKT", "EPWR",
                            "EPMO", "EPPO", "EPRZ", "EPSC", "EPLB",
                            "EPBY", "EPLL", "EPSY", "EPRA", "EPZG"};
-  const char AIRPORTS[][30] = {"Warszawa Okęcie",
-                               "Kraków-Balice",
-                               "Gdańsk-Rębiechowo",
+  const char AIRPORTS[][30] = {"Warszawa Okecie",
+                               "Krakow-Balice",
+                               "Gdansk-Rebiechowo",
                                "Katowice w Pyrzowicach",
-                               "Wrocław-Strachowice",
+                               "Wroclaw-Strachowice",
                                "Warszawa-Modlin",
-                               "Poznań-Ławica",
-                               "Rzeszów-Jasionka",
-                               "Szczecin-Goleniów",
+                               "Poznan-lawica",
+                               "Rzeszow-Jasionka",
+                               "Szczecin-Goleniow",
                                "Lublin",
                                "Bydgoszcz",
-                               "Łódź",
+                               "Lodz",
                                "Olsztyn-Mazury",
                                "Warszawa-Radom",
-                               "Zielona Góra-Babimost"};
+                               "Zielona Gora-Babimost"};
   std::cout << "GENERATOR METAR" << std::endl;
   for (int i = 0; i < 15; i++) {
     std::cout << i + 1 << " - " << AIRPORTS[i] << std::endl;
   }
-  std::cout << "Wybierz z którego lotniska są dane[1-15]: ";
+  std::cout << "Wybierz z ktorego lotniska sa dane[1-15]: ";
   int num;
   while (!(std::cin >> num) || num < 1 || num > 15) {
-    std::cout << "Niepoprawny wybór, spróbuj ponownie: ";
+    std::cout << "Niepoprawny wybor, sprobuj ponownie: ";
     std::cin.clear();
   }
   char code[5];
   charArrCpy(code, CODES[num - 1]);
   char separator;
   int day, hour, minutes;
-  std::cout << "Podaj dzień miesiąca: ";
+  std::cout << "Podaj dzien miesiaca: ";
   while (!(std::cin >> day) || day < 1 || day > 31) {
-    std::cout << "Niepoprawny dzień miesiąca, spróbuj ponownie: ";
+    std::cout << "Niepoprawny dzien miesiaca, sprobuj ponownie: ";
     std::cin.clear();
   };
-  std::cout << "Podaj godzinę UTC pomiaru w formacie HH:MM: ";
+  std::cout << "Podaj godzine UTC pomiaru w formacie HH:MM: ";
   while (!(std::cin >> hour >> separator >> minutes) || hour < 0 || hour > 23 ||
          minutes < 0 || minutes > 59) {
-    std::cout << "Niepoprawny czas UTC, spróbuj ponownie: ";
+    std::cout << "Niepoprawny czas UTC, sprobuj ponownie: ";
     std::cin.clear();
   }
   int deg, speed;
   std::cout << "Podaj kierunek wiatru w stopniach: ";
   while (!(std::cin >> deg) || deg < 0 || deg > 360) {
-    std::cout << "Niepoprawny kierunek, spróbuj ponownie: ";
+    std::cout << "Niepoprawny kierunek, sprobuj ponownie: ";
     std::cin.clear();
   }
-  std::cout << "Podaj prędkość wiatru w węzłach: ";
+  std::cout << "Podaj predkosc wiatru w wezlach: ";
   while (!(std::cin >> speed) || speed < 0) {
-    std::cout << "Ujemna prędkość nie istnieje, spróbuj ponownie: ";
+    std::cout << "Ujemna predkosc nie istnieje, sprobuj ponownie: ";
     std::cin.clear();
   }
   int temperature, dew;
-  std::cout << "Podaj temperaturę powietrza w °C: ";
+  std::cout << "Podaj temperature powietrza w C: ";
   while (!(std::cin >> temperature) || temperature < -273) {
-    std::cout << "Niepoprawna temperatura, spróbuj ponownie: ";
+    std::cout << "Niepoprawna temperatura, sprobuj ponownie: ";
     std::cin.clear();
   }
-  std::cout << "Podaj temperaturę punktu rosy w °C: ";
+  std::cout << "Podaj temperature punktu rosy w C: ";
   while (!(std::cin >> dew) || dew < -273) {
-    std::cout << "Niepoprawna temperatura, spróbuj ponownie: ";
+    std::cout << "Niepoprawna temperatura, sprobuj ponownie: ";
     std::cin.clear();
   }
   int pressure;
-  std::cout << "Podaj ciśnienie atmosferyczne w hPa: ";
+  std::cout << "Podaj cisnienie atmosferyczne w hPa: ";
   while (!(std::cin >> pressure) || pressure < 0) {
-    std::cout << "Niepoprawny wybór, spróbuj ponownie: ";
+    std::cout << "Niepoprawny wybor, sprobuj ponownie: ";
     std::cin.clear();
   }
   std::cout << std::endl << "Wygenerowana depesza METAR:" << std::endl;
@@ -867,8 +864,6 @@ void createMetar() {
 }
 
 int main() {
-  // Set up utf locale for correct encoding on windows
-  std::locale::global(std::locale("pl_PL.UTF-8"));
   char mode;
   do {
     clear();
@@ -876,15 +871,14 @@ int main() {
     char input[999], output[999];
     switch (mode) {
     case 'o':
-      std::cout << "Podaj ścieżkę pliku wejściowego: ";
+      std::cout << "Podaj sciezke pliku wejsciowego: ";
       std::cin >> input;
-      std::cout << "Podaj ścieżkę pliku wyjściowego: ";
+      std::cout << "Podaj sciezke pliku wyjsciowego: ";
       std::cin >> output;
       clear();
       handleFile(input, output);
       break;
     case 'n':
-      // TODO: implement
       clear();
       createMetar();
       break;
@@ -892,7 +886,7 @@ int main() {
       return 0;
     }
     char back;
-    std::cout << "Wpisz b aby powrócić do menu: ";
+    std::cout << "Wpisz b aby powrocic do menu: ";
     while (!(std::cin >> back) || std::tolower(back) != 'b') {
       std::cin.clear();
     };
